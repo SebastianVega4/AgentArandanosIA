@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 
 # Añadir raíz al path para imports de modulos
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 import streamlit as st

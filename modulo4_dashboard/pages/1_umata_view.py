@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 # ── Configuración de página ──────────────────────────────────────────────────
