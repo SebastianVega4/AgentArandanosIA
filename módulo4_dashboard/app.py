@@ -314,6 +314,12 @@ with st.sidebar:
         Proyecto de Grado UPTC<br>
         Ingeniería Electrónica<br>
         <br>
+        <div style="background: rgba(59,130,246,0.1); padding: 8px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.2); margin-top:10px;">
+            🛡️ <b>Protección de Datos</b><br>
+            Cumple con la <b>Ley 1581 de 2012</b>.<br>
+            Toda la información del predio y del productor es tratada de forma confidencial.
+        </div>
+        <br>
         Tecnologías:<br>
         LangGraph • Groq • ChromaDB<br>
         YOLOv8 • Streamlit • Python

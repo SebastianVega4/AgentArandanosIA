@@ -36,13 +36,12 @@ class BerryMindState(TypedDict, total=False):
     image_path:         Optional[str]       # Ruta a imagen de hoja subida
     sensor_data:        Optional[dict]      # Datos del sensor IoT
 
-    # Decisión del supervisor
-    next_agent:         Optional[str]       # "rag" | "vision" | "irrigation" | "none"
-
     # Resultados intermedios
     vision_result:      Optional[dict]      # Resultado del análisis de visión
-    rag_context:        Optional[dict]      # Contexto recuperado por RAG
+    climate_info:       Optional[dict]      # Info del Agente Climático
+    rag_context:        Optional[str]       # Contexto recuperado por RAG
     irrigation_command: Optional[dict]      # Comando de riego generado
+    session_history:    Optional[dict]      # Resumen del MonitorAgent
 
     # Salida final
     response:           Optional[str]       # Respuesta en lenguaje natural
@@ -56,71 +55,29 @@ class BerryMindState(TypedDict, total=False):
 # NODOS DEL GRAFO
 # ─────────────────────────────────────────────────────────────────────────────
 
-def node_supervisor(state: BerryMindState) -> BerryMindState:
-    from módulo3_cerebro.agents.agents import supervisor_agent
-    return supervisor_agent(state)
-
+def node_sensor(state: BerryMindState) -> BerryMindState:
+    from módulo3_cerebro.agents.agents import sensor_agent
+    return sensor_agent(state)
 
 def node_vision(state: BerryMindState) -> BerryMindState:
-    """Nodo de visión: analiza la imagen de hoja."""
-    from módulo2_vision.vision_agent import analyze_leaf
-    from módulo3_cerebro.agents.agents import _log
+    from módulo3_cerebro.agents.agents import vision_agent
+    return vision_agent(state)
 
-    _log(state, "VisionNode", f"Analizando imagen: {state.get('image_path')}")
-    try:
-        result = analyze_leaf(state["image_path"])
-        state["vision_result"] = result
-        _log(state, "VisionNode", f"✅ Resultado: {result['estado']} ({result['confianza']:.0%})")
-    except Exception as e:
-        state["vision_result"] = {
-            "estado": "Error", "confianza": 0.0,
-            "detalles": f"Error al analizar imagen: {e}"
-        }
-        _log(state, "VisionNode", f"❌ Error: {e}")
-    return state
-
+def node_climate(state: BerryMindState) -> BerryMindState:
+    from módulo3_cerebro.agents.agents import climate_agent
+    return climate_agent(state)
 
 def node_agronomy(state: BerryMindState) -> BerryMindState:
     from módulo3_cerebro.agents.agents import agronomic_agent
     return agronomic_agent(state)
 
-
-def node_rag(state: BerryMindState) -> BerryMindState:
-    from módulo3_cerebro.agents.agents import rag_agent
-    return rag_agent(state)
-
-
 def node_irrigation(state: BerryMindState) -> BerryMindState:
     from módulo3_cerebro.agents.agents import irrigation_agent
     return irrigation_agent(state)
 
-
-def node_output(state: BerryMindState) -> BerryMindState:
-    """Nodo final: formatea y registra la respuesta."""
-    from módulo3_cerebro.agents.agents import _log
-    _log(state, "OutputNode", f"Respuesta lista. Agente: {state.get('responder', 'N/A')}")
-    return state
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# FUNCIÓN DE ENRUTAMIENTO (Router)
-# ─────────────────────────────────────────────────────────────────────────────
-
-def route_from_supervisor(state: BerryMindState) -> str:
-    """Determina el siguiente nodo basado en la decisión del supervisor."""
-    next_agent = state.get("next_agent", "none")
-    route_map  = {
-        "rag":        "rag",
-        "vision":     "vision",
-        "irrigation": "irrigation",
-        "none":       "output",
-    }
-    return route_map.get(next_agent, "output")
-
-
-def route_from_vision(state: BerryMindState) -> str:
-    """Después de visión, siempre va a agronomy."""
-    return "agronomy"
+def node_monitor(state: BerryMindState) -> BerryMindState:
+    from módulo3_cerebro.agents.agents import monitor_agent
+    return monitor_agent(state)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -128,46 +85,28 @@ def route_from_vision(state: BerryMindState) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def build_graph():
-    """Construye y compila el grafo LangGraph de BerryMind."""
+    """Construye y compila el grafo LangGraph de BerryMind (6 Agentes)."""
     from langgraph.graph import StateGraph, END
 
     graph = StateGraph(BerryMindState)
 
-    # Agregar nodos
-    graph.add_node("supervisor",  node_supervisor)
-    graph.add_node("rag",         node_rag)
-    graph.add_node("vision",      node_vision)
-    graph.add_node("agronomy",    node_agronomy)
-    graph.add_node("irrigation",  node_irrigation)
-    graph.add_node("output",      node_output)
+    # Agregar los 6 nodos de la arquitectura
+    graph.add_node("sensor",     node_sensor)
+    graph.add_node("vision",     node_vision)
+    graph.add_node("climate",    node_climate)
+    graph.add_node("agronomy",   node_agronomy)
+    graph.add_node("irrigation", node_irrigation)
+    graph.add_node("monitor",    node_monitor)
 
-    # Definir punto de entrada
-    graph.set_entry_point("supervisor")
-
-    # Arista condicional desde supervisor
-    graph.add_conditional_edges(
-        "supervisor",
-        route_from_supervisor,
-        {
-            "rag":        "rag",
-            "vision":     "vision",
-            "irrigation": "irrigation",
-            "output":     "output",
-        }
-    )
-
-    # Arista condicional desde vision → agronomy
-    graph.add_conditional_edges(
-        "vision",
-        route_from_vision,
-        {"agronomy": "agronomy"}
-    )
-
-    # Aristas simples al nodo de salida
-    graph.add_edge("rag",        "output")
-    graph.add_edge("agronomy",   "output")
-    graph.add_edge("irrigation", "output")
-    graph.add_edge("output",     END)
+    # Definir flujo lineal: cada entrada pasa por todos los filtros de análisis
+    graph.set_entry_point("sensor")
+    
+    graph.add_edge("sensor",     "vision")
+    graph.add_edge("vision",     "climate")
+    graph.add_edge("climate",    "agronomy")
+    graph.add_edge("agronomy",   "irrigation")
+    graph.add_edge("irrigation", "monitor")
+    graph.add_edge("monitor",    END)
 
     return graph.compile()
 

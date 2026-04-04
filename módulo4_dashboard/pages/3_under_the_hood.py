@@ -86,19 +86,19 @@ col_graph, col_logs, col_rag = st.columns([1, 1.2, 1])
 
 # ── COLUMNA 1: Diagrama del Grafo LangGraph ───────────────────────────────────
 with col_graph:
-    st.markdown("### 🗺️ Grafo de Agentes LangGraph")
+    st.markdown("### 🗺️ Grafo de 6 Agentes LangGraph")
 
     # Obtener el último agente activo del log de sesión
     last_logs  = st.session_state.get("agent_log", [])
     last_agent = last_logs[-1]["agent"] if last_logs else None
 
     nodes = [
-        ("supervisor",      "Supervisor",     "#F59E0B", "🎯 Enrutador",      "Analiza la entrada y decide el flujo"),
-        ("rag",             "RAGAgent",       "#3B82F6", "📚 RAG",            "Consulta ChromaDB + Llama 3"),
-        ("vision",          "VisionNode",     "#8B5CF6", "👁️ Visión",         "YOLOv8/HSV → clasifica hoja"),
-        ("agronomy",        "AgronomicAgent", "#10B981", "🌿 Agronómico",     "Prescribe tratamiento"),
-        ("irrigation",      "IrrigationAgent","#EF4444",  "💧 Riego",          "Responde alertas IoT"),
-        ("output",          "OutputNode",     "#94A3B8", "📤 Salida",         "Formatea respuesta final"),
+        ("sensor",      "SensorAgent",    "#3B82F6", "📡 Sensor",      "Ingesta y normaliza datos IoT"),
+        ("vision",      "VisionAgent",    "#8B5CF6", "👁️ Visión",      "YOLOv8/HSV → análisis foliar"),
+        ("climate",     "ClimateAgent",   "#06B6D4", "☁️ Climático",   "Consulta IDEAM y evalúa riesgos"),
+        ("agronomy",    "AgronomicAgent", "#10B981", "🌿 Agronómico",  "Razonamiento RAG + Llama 3"),
+        ("irrigation",  "IrrigationAgent","#EF4444", "💧 Riego",       "Emite comandos de actuación"),
+        ("monitor",     "MonitorAgent",   "#94A3B8", "🖥️ Monitor",     "Verifica y actualiza memoria"),
     ]
 
     for node_id, node_name, color, label, desc in nodes:
@@ -115,7 +115,7 @@ with col_graph:
         """, unsafe_allow_html=True)
 
         # Flecha de conexión (excepto el último)
-        if node_id != "output":
+        if node_id != "monitor":
             st.markdown("""
             <div style="text-align:center; color:#1E293B; font-size:1.2rem; margin:-4px 0;">↕</div>
             """, unsafe_allow_html=True)
@@ -123,11 +123,14 @@ with col_graph:
     # Aristas condicionales
     st.markdown("""
     <div style="background:#111827; border-radius:8px; padding:10px; margin-top:12px; font-family:'JetBrains Mono'; font-size:0.7rem;">
-        <div style="color:#64748B; margin-bottom:6px;">Rutas condicionales:</div>
-        <div style="color:#F59E0B;">Supervisor</div>
-        <div style="color:#94A3B8; padding-left:12px;">├─ texto  → RAGAgent</div>
-        <div style="color:#94A3B8; padding-left:12px;">├─ imagen → Visión → Agronómico</div>
-        <div style="color:#94A3B8; padding-left:12px;">└─ alerta → IrrigationAgent</div>
+        <div style="color:#64748B; margin-bottom:6px;">Arquitectura de Flujo:</div>
+        <div style="color:#94A3B8; padding-left:4px;">Ciclo continuo de monitoreo 360°:</div>
+        <div style="color:#94A3B8; padding-left:12px;">1. Captura de datos (IoT)</div>
+        <div style="color:#94A3B8; padding-left:12px;">2. Análisis visual (Hojas)</div>
+        <div style="color:#94A3B8; padding-left:12px;">3. Contexto climático (IDEAM)</div>
+        <div style="color:#94A3B8; padding-left:12px;">4. Inteligencia RAG (Cerebro)</div>
+        <div style="color:#94A3B8; padding-left:12px;">5. Actuación física (Válvulas)</div>
+        <div style="color:#94A3B8; padding-left:12px;">6. Supervisión de ciclo (Monitor)</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -149,12 +152,12 @@ with col_logs:
     else:
         # Mostrar los últimos 50 eventos
         log_css_map = {
-            "Supervisor":      "log-supervisor",
-            "RAGAgent":        "log-ragagent",
-            "VisionNode":      "log-visionnode",
+            "SensorAgent":     "log-supervisor",
+            "VisionAgent":     "log-visionnode",
+            "ClimateAgent":    "log-ragagent",
             "AgronomicAgent":  "log-agronomicagent",
             "IrrigationAgent": "log-irrigationagent",
-            "OutputNode":      "log-outputnode",
+            "MonitorAgent":    "log-outputnode",
         }
 
         for entry in reversed(agent_log[-50:]):

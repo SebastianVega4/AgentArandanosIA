@@ -242,15 +242,22 @@ with col_chat:
                 else:
                     agent = msg.get("responder", "BerryMind")
                     agent_icons = {
-                        "RAGAgent":        "📚",
+                        "SensorAgent":     "📡",
+                        "VisionAgent":     "👁️",
+                        "ClimateAgent":    "☁️",
                         "AgronomicAgent":  "🌿",
                         "IrrigationAgent": "💧",
+                        "MonitorAgent":    "🖥️",
+                        "RAGAgent":        "📚",
                         "Sistema":         "⚙️",
                     }
                     icon = agent_icons.get(agent, "🫐")
 
                     with st.chat_message("assistant", avatar=icon):
-                        st.markdown(f"**[{agent}]**")
+                        if "Multi-Agente" in agent:
+                            st.markdown(f"**[{agent}]** 🤖")
+                        else:
+                            st.markdown(f"**[{agent}]** {icon}")
                         st.markdown(msg["content"])
 
     # Input de chat
