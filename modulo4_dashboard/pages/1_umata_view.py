@@ -61,7 +61,7 @@ def get_current_data() -> dict | None:
         pass
 
     # Fallback: leer el archivo JSON
-    iot_file = ROOT / "módulo1_iot" / "latest_reading.json"
+    iot_file = ROOT / "modulo1_iot" / "latest_reading.json"
     if iot_file.exists():
         try:
             with open(iot_file) as f:
@@ -82,7 +82,7 @@ def get_history_data(n: int = 100) -> list:
         pass
 
     # Generar datos simulados si el servidor no está disponible
-    from módulo1_iot.iot_simulator import load_historical_data
+    from modulo1_iot.iot_simulator import load_historical_data
     return load_historical_data(hours=8, mode="normal")
 
 
@@ -221,7 +221,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Controles de modo de simulación ─────────────────────────────────────────
-with st.expander("🎮 Control del Simulador IoT", expanded=False):
+with st.expander(" Control del Simulador IoT", expanded=False):
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     mode_buttons = {
         "🌤️ Normal":  "normal",
@@ -235,10 +235,10 @@ with st.expander("🎮 Control del Simulador IoT", expanded=False):
                 if set_iot_mode(mode):
                     st.success(f"Modo '{mode}' activado")
                 else:
-                    st.warning("Servidor IoT no disponible. Inicia: `python módulo1_iot/iot_simulator.py --server`")
+                    st.warning("Servidor IoT no disponible. Inicia: `python modulo1_iot/iot_simulator.py --server`")
 
 # ── Auto-refresh ─────────────────────────────────────────────────────────────
-auto_refresh = st.checkbox("🔄 Auto-actualizar cada 5 segundos", value=True)
+auto_refresh = st.checkbox(" Auto-actualizar cada 5 segundos", value=True)
 
 # Obtener datos actuales
 current = get_current_data()
@@ -249,14 +249,14 @@ if current is None:
 
     Para ver datos en tiempo real, inicia el simulador en otra terminal:
     ```bash
-    python módulo1_iot/iot_simulator.py --server
+    python modulo1_iot/iot_simulator.py --server
     ```
     """)
 
     # Generar datos de demo
-    from módulo1_iot.iot_simulator import generate_reading
+    from modulo1_iot.iot_simulator import generate_reading
     current = generate_reading(mode="normal", step=100)
-    st.info("📊 Mostrando datos de *demostración* generados localmente.")
+    st.info(" Mostrando datos de *demostración* generados localmente.")
 
 # ── Banner de estado general ─────────────────────────────────────────────────
 status = current.get("status", "NORMAL")

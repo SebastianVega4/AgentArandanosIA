@@ -60,7 +60,7 @@ if "last_vision"   not in st.session_state:
 def invoke_brain(user_input=None, image_path=None, sensor_data=None):
     """Llama al grafo LangGraph y retorna la respuesta."""
     try:
-        from módulo3_cerebro.brain import run_berrymind
+        from modulo3_cerebro.brain import run_berrymind
         result = run_berrymind(
             user_input  = user_input,
             image_path  = image_path,
@@ -71,13 +71,13 @@ def invoke_brain(user_input=None, image_path=None, sensor_data=None):
         return result
     except ImportError as e:
         return {
-            "response":  f"⚠️ Error al importar el cerebro: {e}\n\nVerifica que has instalado todas las dependencias:\n```bash\npip install -r requirements.txt\n```",
+            "response":  f" Error al importar el cerebro: {e}\n\nVerifica que has instalado todas las dependencias:\n```bash\npip install -r requirements.txt\n```",
             "responder": "Sistema",
             "agent_log": [],
         }
     except Exception as e:
         return {
-            "response":  f"❌ Error inesperado: {str(e)}",
+            "response":  f" Error inesperado: {str(e)}",
             "responder": "Sistema",
             "agent_log": [],
         }
@@ -122,7 +122,7 @@ with col_tools:
         st.image(uploaded_file, caption="Imagen cargada", use_column_width=True)
 
         if st.button("🔍 Analizar con IA", use_container_width=True, key="btn_analyze"):
-            with st.spinner("🧠 BerryMind está analizando la hoja..."):
+            with st.spinner(" BerryMind está analizando la hoja..."):
                 # Guardar en archivo temporal
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
                     tmp.write(uploaded_file.getbuffer())
@@ -137,7 +137,7 @@ with col_tools:
                 # Añadir al chat
                 st.session_state.chat_history.append({
                     "role":     "user",
-                    "content":  f"📸 [Imagen subida: {uploaded_file.name}]",
+                    "content":  f" [Imagen subida: {uploaded_file.name}]",
                     "type":     "image",
                 })
                 st.session_state.chat_history.append({
@@ -197,7 +197,7 @@ with col_tools:
 
     for q in quick_questions:
         if st.button(q, key=f"quick_{q[:20]}", use_container_width=True):
-            with st.spinner("🤔 BerryMind está pensando..."):
+            with st.spinner("BerryMind está pensando..."):
                 result = invoke_brain(user_input=q)
             st.session_state.chat_history.append({"role": "user", "content": q, "type": "text"})
             st.session_state.chat_history.append({
@@ -217,7 +217,7 @@ with col_tools:
 
 # ── COLUMNA IZQUIERDA: Chat ──────────────────────────────────────────────────
 with col_chat:
-    st.markdown("### 💬 Chat con BerryMind")
+    st.markdown("### Chat con BerryMind")
 
     # Contenedor del chat con scroll
     chat_container = st.container()
@@ -266,7 +266,7 @@ with col_chat:
     if user_question:
         st.session_state.chat_history.append({"role": "user", "content": user_question, "type": "text"})
 
-        with st.spinner("🧠 BerryMind está procesando tu consulta..."):
+        with st.spinner("BerryMind está procesando tu consulta..."):
             result = invoke_brain(user_input=user_question)
 
         st.session_state.chat_history.append({

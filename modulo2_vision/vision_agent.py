@@ -1,5 +1,5 @@
 """
-BerryMind — Módulo 2: Agente de Visión Artificial
+BerryMind — Modulo 2: Agente de Visión Artificial
 ==================================================
 Clasifica el estado de hojas de arándano en 3 categorías:
   - SANO:     Hoja verde, sin manchas, turgente

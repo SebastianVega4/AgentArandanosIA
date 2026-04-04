@@ -12,8 +12,8 @@ ENV/
 chroma_db/
 
 # ── Modelos entrenados (pesados, subir por separado si se desea)
-módulo2_vision/modelo/*.pt
-módulo2_vision/modelo/*.onnx
+modulo2_vision/modelo/*.pt
+modulo2_vision/modelo/*.onnx
 *.pt
 *.onnx
 
@@ -25,7 +25,7 @@ __pycache__/
 .pytest_cache/
 
 # ── Archivos temporales de IoT ───────────────────────────────────
-módulo1_iot/latest_reading.json
+modulo1_iot/latest_reading.json
 
 # ── Archivos de Jupyter ─────────────────────────────────────────
 .ipynb_checkpoints/

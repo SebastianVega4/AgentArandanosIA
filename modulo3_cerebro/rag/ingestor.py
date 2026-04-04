@@ -18,7 +18,7 @@ from datetime import datetime
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR     = Path(__file__).parent.parent.parent  # raíz de berrymind/
-KB_DIR       = BASE_DIR / "módulo3_cerebro" / "knowledge_base"
+KB_DIR       = BASE_DIR / "modulo3_cerebro" / "knowledge_base"
 CHROMA_DIR   = BASE_DIR / "chroma_db"
 
 

@@ -86,19 +86,19 @@ col_graph, col_logs, col_rag = st.columns([1, 1.2, 1])
 
 # ── COLUMNA 1: Diagrama del Grafo LangGraph ───────────────────────────────────
 with col_graph:
-    st.markdown("### 🗺️ Grafo de 6 Agentes LangGraph")
+    st.markdown("###  Grafo de 6 Agentes LangGraph")
 
     # Obtener el último agente activo del log de sesión
     last_logs  = st.session_state.get("agent_log", [])
     last_agent = last_logs[-1]["agent"] if last_logs else None
 
     nodes = [
-        ("sensor",      "SensorAgent",    "#3B82F6", "📡 Sensor",      "Ingesta y normaliza datos IoT"),
-        ("vision",      "VisionAgent",    "#8B5CF6", "👁️ Visión",      "YOLOv8/HSV → análisis foliar"),
-        ("climate",     "ClimateAgent",   "#06B6D4", "☁️ Climático",   "Consulta IDEAM y evalúa riesgos"),
-        ("agronomy",    "AgronomicAgent", "#10B981", "🌿 Agronómico",  "Razonamiento RAG + Llama 3"),
-        ("irrigation",  "IrrigationAgent","#EF4444", "💧 Riego",       "Emite comandos de actuación"),
-        ("monitor",     "MonitorAgent",   "#94A3B8", "🖥️ Monitor",     "Verifica y actualiza memoria"),
+        ("sensor",      "SensorAgent",    "#3B82F6", " Sensor",      "Ingesta y normaliza datos IoT"),
+        ("vision",      "VisionAgent",    "#8B5CF6", " Visión",      "YOLOv8/HSV → análisis foliar"),
+        ("climate",     "ClimateAgent",   "#06B6D4", " Climático",   "Consulta IDEAM y evalúa riesgos"),
+        ("agronomy",    "AgronomicAgent", "#10B981", " Agronómico",  "Razonamiento RAG + Llama 3"),
+        ("irrigation",  "IrrigationAgent","#EF4444", " Riego",       "Emite comandos de actuación"),
+        ("monitor",     "MonitorAgent",   "#94A3B8", " Monitor",     "Verifica y actualiza memoria"),
     ]
 
     for node_id, node_name, color, label, desc in nodes:
@@ -181,7 +181,7 @@ with col_logs:
             st.rerun()
     with col_l2:
         st.download_button(
-            "📥 Exportar logs",
+            " Exportar logs",
             data=json.dumps(agent_log, indent=2, ensure_ascii=False),
             file_name=f"berrymind_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
@@ -191,7 +191,7 @@ with col_logs:
     st.divider()
 
     # Test del sistema en esta misma página
-    st.markdown("### 🧪 Tests del Sistema")
+    st.markdown("###  Tests del Sistema")
 
     test_options = {
         "Consulta RAG: Botrytis":        ("rag",        "¿Cómo trato la Botrytis en arándanos?", None, None),
@@ -204,71 +204,71 @@ with col_logs:
 
     selected_test = st.selectbox("Seleccionar test:", list(test_options.keys()), key="test_select")
 
-    if st.button("▶️ Ejecutar Test", use_container_width=True, key="run_test"):
+    if st.button("▶ Ejecutar Test", use_container_width=True, key="run_test"):
         test_type, query, img, sensor = test_options[selected_test]
 
         with st.spinner(f"Ejecutando: {selected_test}..."):
             try:
                 if test_type == "rag":
-                    from módulo3_cerebro.brain import run_berrymind
+                    from modulo3_cerebro.brain import run_berrymind
                     result = run_berrymind(user_input=query)
                     st.session_state.agent_log.extend(result.get("agent_log", []))
-                    st.success(f"✅ Respondió: {result.get('responder')}")
+                    st.success(f" Respondió: {result.get('responder')}")
                     with st.expander("Ver respuesta"):
                         st.markdown(result.get("response", "")[:500] + "...")
 
                 elif test_type == "irrigation":
-                    from módulo3_cerebro.brain import run_berrymind
+                    from modulo3_cerebro.brain import run_berrymind
                     result = run_berrymind(sensor_data=sensor)
                     st.session_state.agent_log.extend(result.get("agent_log", []))
                     cmd = result.get("irrigation_command", {})
-                    st.success(f"✅ Comando: {cmd.get('comando')} — Prioridad: {cmd.get('prioridad')}")
+                    st.success(f" Comando: {cmd.get('comando')} — Prioridad: {cmd.get('prioridad')}")
 
                 elif test_type == "vision_test":
-                    test_dir = ROOT / "módulo2_vision" / "test_images"
+                    test_dir = ROOT / "modulo2_vision" / "test_images"
                     img_path = test_dir / f"{query}.jpg"
                     if not img_path.exists():
-                        from módulo2_vision.vision_agent import generate_test_images
+                        from modulo2_vision.vision_agent import generate_test_images
                         generate_test_images()
-                    from módulo2_vision.vision_agent import analyze_leaf
+                    from modulo2_vision.vision_agent import analyze_leaf
                     result = analyze_leaf(str(img_path))
-                    st.success(f"✅ Estado: {result.get('estado')} — Confianza: {result.get('confianza'):.0%}")
+                    st.success(f" Estado: {result.get('estado')} — Confianza: {result.get('confianza'):.0%}")
 
             except Exception as e:
-                st.error(f"❌ Error: {e}")
+                st.error(f" Error: {e}")
 
         st.rerun()
 
 
 # ── COLUMNA 3: Contexto RAG + Métricas ───────────────────────────────────────
 with col_rag:
-    st.markdown("### 🔍 Estado del RAG")
+    st.markdown("###  Estado del RAG")
 
     # Stats de ChromaDB
     try:
-        from módulo3_cerebro.rag.retriever import get_collection_stats
+        from modulo3_cerebro.rag.retriever import get_collection_stats
         stats = get_collection_stats()
         col_s1, col_s2 = st.columns(2)
         with col_s1:
             st.metric("Chunks indexados", stats.get("total_chunks", 0))
         with col_s2:
-            st.metric("Estado", "✅ Listo" if stats.get("status") == "ready" else "⚠️ Vacío")
+            st.metric("Estado", " Listo" if stats.get("status") == "ready" else "⚠️ Vacío")
     except Exception as e:
         st.warning(f"ChromaDB no disponible: {e}")
 
     st.divider()
 
     # Búsqueda de prueba en RAG
-    st.markdown("### 🔎 Probar Búsqueda RAG")
+    st.markdown("### Probar Búsqueda RAG")
     rag_query = st.text_input("Consulta de búsqueda:", placeholder="ej: helada protección arándanos")
 
     if rag_query:
         with st.spinner("Buscando..."):
             try:
-                from módulo3_cerebro.rag.retriever import search
+                from modulo3_cerebro.rag.retriever import search
                 results = search(rag_query, k=3)
                 for i, r in enumerate(results, 1):
-                    with st.expander(f"📄 Fragmento {i} — {r['source']} ({r['score']:.0%})"):
+                    with st.expander(f" Fragmento {i} — {r['source']} ({r['score']:.0%})"):
                         st.markdown(f"```\n{r['text'][:400]}...\n```")
             except Exception as e:
                 st.error(f"Error: {e}")
@@ -276,16 +276,16 @@ with col_rag:
     st.divider()
 
     # Información técnica del sistema
-    st.markdown("### 🏗️ Stack Tecnológico")
+    st.markdown("###  Stack Tecnológico")
 
     tech_stack = [
-        ("🔮 LLM",      "Groq (Llama 3.1-8B)",      "#8B5CF6"),
-        ("📚 RAG",      "LangChain + ChromaDB",       "#3B82F6"),
-        ("🧠 Orquesta", "LangGraph StateGraph",        "#F59E0B"),
-        ("👁️ Visión",   "YOLOv8n / OpenCV HSV",      "#8B5CF6"),
-        ("🔠 Embedds",  "paraphrase-multilingual",    "#10B981"),
-        ("📡 IoT",      "Flask + threading",           "#EC4899"),
-        ("📊 UI",       "Streamlit + Plotly",          "#F97316"),
+        (" LLM",      "Groq (Llama 3.1-8B)",      "#8B5CF6"),
+        (" RAG",      "LangChain + ChromaDB",       "#3B82F6"),
+        (" Orquesta", "LangGraph StateGraph",        "#F59E0B"),
+        (" Visión",   "YOLOv8n / OpenCV HSV",      "#8B5CF6"),
+        (" Embedds",  "paraphrase-multilingual",    "#10B981"),
+        (" IoT",      "Flask + threading",           "#EC4899"),
+        (" UI",       "Streamlit + Plotly",          "#F97316"),
     ]
 
     for label, value, color in tech_stack:
@@ -301,7 +301,7 @@ with col_rag:
     st.divider()
 
     # Últimas métricas (si están disponibles en session_state)
-    st.markdown("### 📊 Métricas de Sesión")
+    st.markdown("###  Métricas de Sesión")
     n_messages  = len([m for m in st.session_state.get("chat_history", []) if m["role"] == "assistant"])
     n_log_items = len(st.session_state.get("agent_log", []))
 

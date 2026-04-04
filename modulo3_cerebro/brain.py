@@ -7,7 +7,7 @@ Flujo:
     entrada → supervisor → [rag | vision→agronomy | irrigation] → salida
 
 Uso:
-    from módulo3_cerebro.brain import run_berrymind
+    from modulo3_cerebro.brain import run_berrymind
     result = run_berrymind(user_input="¿Qué hago si hay helada?")
     result = run_berrymind(image_path="hoja.jpg")
     result = run_berrymind(sensor_data={"status": "CRÍTICO", ...})
@@ -56,27 +56,27 @@ class BerryMindState(TypedDict, total=False):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def node_sensor(state: BerryMindState) -> BerryMindState:
-    from módulo3_cerebro.agents.agents import sensor_agent
+    from modulo3_cerebro.agents.agents import sensor_agent
     return sensor_agent(state)
 
 def node_vision(state: BerryMindState) -> BerryMindState:
-    from módulo3_cerebro.agents.agents import vision_agent
+    from modulo3_cerebro.agents.agents import vision_agent
     return vision_agent(state)
 
 def node_climate(state: BerryMindState) -> BerryMindState:
-    from módulo3_cerebro.agents.agents import climate_agent
+    from modulo3_cerebro.agents.agents import climate_agent
     return climate_agent(state)
 
 def node_agronomy(state: BerryMindState) -> BerryMindState:
-    from módulo3_cerebro.agents.agents import agronomic_agent
+    from modulo3_cerebro.agents.agents import agronomic_agent
     return agronomic_agent(state)
 
 def node_irrigation(state: BerryMindState) -> BerryMindState:
-    from módulo3_cerebro.agents.agents import irrigation_agent
+    from modulo3_cerebro.agents.agents import irrigation_agent
     return irrigation_agent(state)
 
 def node_monitor(state: BerryMindState) -> BerryMindState:
-    from módulo3_cerebro.agents.agents import monitor_agent
+    from modulo3_cerebro.agents.agents import monitor_agent
     return monitor_agent(state)
 
 

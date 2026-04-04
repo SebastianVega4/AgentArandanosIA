@@ -53,7 +53,7 @@ def sensor_agent(state: dict) -> dict:
     sensor_data = state.get("sensor_data")
     if not sensor_data:
         # Intentar leer el último archivo generado por el simulador si no viene en el estado
-        iot_file = ROOT / "módulo1_iot" / "latest_reading.json"
+        iot_file = ROOT / "modulo1_iot" / "latest_reading.json"
         if iot_file.exists():
             with open(iot_file, "r", encoding="utf-8") as f:
                 sensor_data = json.load(f)
@@ -77,7 +77,7 @@ def vision_agent(state: dict) -> dict:
     if not state.get("image_path"):
         return state
 
-    from módulo2_vision.vision_agent import analyze_leaf
+    from modulo2_vision.vision_agent import analyze_leaf
     _log(state, "VisionAgent", f"Analizando imagen: {state['image_path']}")
     
     try:
@@ -129,7 +129,7 @@ def climate_agent(state: dict) -> dict:
 
 def agronomic_agent(state: dict) -> dict:
     """Integra todo el conocimiento y genera la recomendación técnica."""
-    from módulo3_cerebro.rag.retriever import build_context
+    from modulo3_cerebro.rag.retriever import build_context
     
     _log(state, "AgronomicAgent", "Iniciando razonamiento agronómico...")
     

@@ -4,8 +4,8 @@ BerryMind — RAG Retriever
 Función de búsqueda semántica en ChromaDB para recuperar
 contexto relevante antes de llamar al LLM.
 
-Uso como módulo:
-    from módulo3_cerebro.rag.retriever import search, get_collection_stats
+Uso como modulo:
+    from modulo3_cerebro.rag.retriever import search, get_collection_stats
     results = search("¿Cómo tratar la Botrytis en arándanos?", k=3)
 """
 

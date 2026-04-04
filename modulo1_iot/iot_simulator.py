@@ -1,5 +1,5 @@
 """
-BerryMind — Módulo 1: Simulador IoT
+BerryMind — Modulo 1: Simulador IoT
 ====================================
 Simula sensores de campo para cultivos de arándanos en Valle de Sotaquirá.
 

@@ -14,7 +14,7 @@ import sys
 import os
 from pathlib import Path
 
-# Añadir raíz al path para imports de módulos
+# Añadir raíz al path para imports de modulos
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
@@ -253,7 +253,7 @@ with st.sidebar:
     st.markdown("**🔌 Estado del Sistema**")
 
     # Intentar leer el estado del IoT simulator
-    iot_file = ROOT / "módulo1_iot" / "latest_reading.json"
+    iot_file = ROOT / "modulo1_iot" / "latest_reading.json"
     iot_status = "Desconectado"
     iot_color  = "status-alert"
 
@@ -399,7 +399,7 @@ with col3:
 st.divider()
 
 # Arquitectura del sistema
-st.markdown("### 🏗️ Arquitectura del Sistema")
+st.markdown("### Arquitectura del Sistema")
 
 st.markdown("""
 ```
@@ -427,7 +427,7 @@ st.markdown("""
 """)
 
 # Instrucciones de inicio rápido
-with st.expander("🚀 Instrucciones de inicio rápido"):
+with st.expander(" Instrucciones de inicio rápido"):
     st.markdown("""
     ### 1. Configura tu API Key de Groq
     ```bash
@@ -442,14 +442,14 @@ with st.expander("🚀 Instrucciones de inicio rápido"):
 
     ### 3. Indexa la base de conocimiento (RAG)
     ```bash
-    python módulo3_cerebro/rag/ingestor.py
+    python modulo3_cerebro/rag/ingestor.py
     ```
 
     ### 4. Inicia el simulador IoT (en otra terminal)
     ```bash
-    python módulo1_iot/iot_simulator.py --server --mode normal
+    python modulo1_iot/iot_simulator.py --server --mode normal
     # Para simular helada:
-    python módulo1_iot/iot_simulator.py --server --mode helada
+    python modulo1_iot/iot_simulator.py --server --mode helada
     ```
 
     ### 5. Ya puedes usar el dashboard
