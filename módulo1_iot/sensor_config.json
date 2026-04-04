@@ -1,0 +1,97 @@
+{
+  "location": "Valle de Sotaquirá, Boyacá, Colombia",
+  "altitude_m": 2400,
+  "crop": "Arándanos (Vaccinium corymbosum)",
+  "sensors": {
+    "temperatura": {
+      "unit": "°C",
+      "optimal_min": 10,
+      "optimal_max": 25,
+      "alert_min": 4,
+      "alert_max": 32,
+      "critical_min": 0,
+      "critical_max": 38,
+      "description": "Temperatura ambiente del cultivo"
+    },
+    "humedad_relativa": {
+      "unit": "%",
+      "optimal_min": 60,
+      "optimal_max": 80,
+      "alert_min": 45,
+      "alert_max": 90,
+      "critical_min": 30,
+      "critical_max": 95,
+      "description": "Humedad relativa del aire"
+    },
+    "ph_suelo": {
+      "unit": "pH",
+      "optimal_min": 4.5,
+      "optimal_max": 5.5,
+      "alert_min": 4.0,
+      "alert_max": 6.0,
+      "critical_min": 3.5,
+      "critical_max": 6.5,
+      "description": "Acidez del suelo (los arándanos requieren suelo ácido)"
+    },
+    "conductividad": {
+      "unit": "mS/cm",
+      "optimal_min": 0.5,
+      "optimal_max": 2.0,
+      "alert_min": 0.2,
+      "alert_max": 3.0,
+      "critical_min": 0.1,
+      "critical_max": 4.0,
+      "description": "Conductividad eléctrica del suelo (nutrientes)"
+    },
+    "luminosidad": {
+      "unit": "lux",
+      "optimal_min": 15000,
+      "optimal_max": 50000,
+      "alert_min": 5000,
+      "alert_max": 65000,
+      "critical_min": 1000,
+      "critical_max": 80000,
+      "description": "Nivel de luz solar recibida"
+    },
+    "humedad_suelo": {
+      "unit": "%",
+      "optimal_min": 60,
+      "optimal_max": 80,
+      "alert_min": 40,
+      "alert_max": 90,
+      "critical_min": 25,
+      "critical_max": 100,
+      "description": "Humedad volumétrica del suelo"
+    }
+  },
+  "simulation_modes": {
+    "normal": {
+      "description": "Condiciones normales de cultivo en Valle de Sotaquirá",
+      "temp_base": 18,
+      "temp_variation": 5,
+      "humidity_base": 70,
+      "soil_moisture_base": 70
+    },
+    "helada": {
+      "description": "Simulación de helada nocturna (temperatura < 2°C)",
+      "temp_base": -1,
+      "temp_variation": 2,
+      "humidity_base": 85,
+      "soil_moisture_base": 65
+    },
+    "sequia": {
+      "description": "Simulación de sequía (humedad suelo baja)",
+      "temp_base": 26,
+      "temp_variation": 4,
+      "humidity_base": 40,
+      "soil_moisture_base": 28
+    },
+    "lluvia": {
+      "description": "Simulación de lluvia intensa en zona andina",
+      "temp_base": 14,
+      "temp_variation": 2,
+      "humidity_base": 95,
+      "soil_moisture_base": 92
+    }
+  }
+}
