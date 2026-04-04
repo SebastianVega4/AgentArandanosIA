@@ -1,0 +1,47 @@
+1. Arquitectura y Stack Tecnológico Definitivo
+Para simular esto con nivel profesional, dividiremos el proyecto en módulos independientes (Microservicios/Scripts) que se comunican entre sí.
+
+Módulo 1: Simulación IoT (El Generador de Datos)
+
+Tecnología: Script en Python puro.
+
+Requisito: Debe generar un archivo JSON o enviar una petición HTTP cada "X" segundos con datos aleatorios pero controlados (Ej: forzar una caída de temperatura para simular una helada y ver cómo reacciona la IA).
+
+Módulo 2: Visión Artificial (El Analizador de Hojas)
+
+Tecnología: Python + Roboflow o YOLOv8 (Ultralytics).
+
+Requisito: Como usarás datasets públicos de Kaggle, no necesitas GANs complejas. Entrenaremos un modelo ligero de clasificación de imágenes para detectar los 3 estados (Sano, Alerta, Botrytis). La IA solo recibe la imagen y devuelve un JSON con la predicción.
+
+Módulo 3: El Cerebro (LangGraph + RAG)
+
+Tecnología: LangChain, LangGraph, ChromaDB (base de datos vectorial local) y la API de Groq (usa Llama 3, es rapidísima y tiene capa gratuita) o OpenAI.
+
+Requisito: Un flujo de nodos donde los agentes deciden qué hacer. El RAG leerá tus PDFs y el Agente Agronómico buscará ahí las respuestas antes de hablar.
+
+Módulo 4: El Dashboard Omnisciente (Interfaz de Usuario)
+
+Tecnología: Streamlit (Python).
+
+Requisito: Es la forma más rápida de hacer que "todo se vea brillante". Tendrá tres pestañas:
+
+Vista UMATA/Agrónomo: Gráficas en tiempo real de los sensores IoT.
+
+Vista de Campo (Simulador del Bot): Un chat integrado donde subes la foto de la hoja o haces preguntas en texto.
+
+El "Under the hood" (Para los jurados): Una vista técnica que muestre en tiempo real qué agente está pensando y qué herramienta está usando.
+
+2. Diseño del Flujo de Agentes (LangGraph)
+Así es como funcionará el "BerryMind" por debajo. LangGraph funciona como una máquina de estados:
+
+Nodo de Entrada: Recibe un estímulo (un mensaje del usuario en el chat, una alerta del sensor IoT, o una imagen subida).
+
+Enrutador (Supervisor Agent): Decide a quién pasarle la tarea.
+
+¿Es una pregunta técnica? -> Llama al Agente RAG.
+
+¿Es una foto? -> Llama al Agente de Visión para clasificarla, y luego pasa el resultado al Agente Agronómico para que recete un tratamiento.
+
+¿El sensor IoT envió una alerta de helada? -> Llama al Agente de Riego para emitir un comando simulado de "abrir válvulas".
+
+Nodo de Salida (Bot Agent): Traduce la decisión técnica a lenguaje natural y la muestra en la pantalla de Streamlit.
