@@ -95,30 +95,51 @@ def vision_agent(state: dict) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def climate_agent(state: dict) -> dict:
-    """Simula la consulta a estaciones climáticas externas (IDEAM)."""
+    """Consulta estaciones climáticas externas (IDEAM) vía mock de datos."""
     _log(state, "ClimateAgent", "Consultando estaciones IDEAM en Sotaquirá...")
     
-    # Simulación de datos externos
+    weather_file = ROOT / "modulo1_iot" / "weather_mock.json"
+    external_data = {}
+    
+    if weather_file.exists():
+        try:
+            with open(weather_file, "r", encoding="utf-8") as f:
+                external_data = json.load(f)
+            _log(state, "ClimateAgent", f"Datos externos recuperados de Estación: {external_data.get('estacion')}")
+        except Exception as e:
+            _log(state, "ClimateAgent", f"Error al leer mock de clima: {e}")
+
+    # Simulación de datos si no hay archivo
     sensor_data = state.get("sensor_data", {})
     temp_ext = sensor_data.get("temperatura", 12.0)
     hr_ext   = sensor_data.get("humedad_relativa", 75.0)
     
-    # Lógica de predicción de helada (simplificada)
+    # Lógica de predicción de helada combinada (Sensores + IDEAM)
     riesgo_helada = "Bajo"
-    if temp_ext < 5.0 and hr_ext < 50.0:
-        riesgo_helada = "Alto (Cielo despejado + baja humedad)"
-    elif temp_ext < 3.0:
+    
+    # Si hay alerta naranja o probabilidad alta en IDEAM
+    prob_ideam = 0.0
+    if external_data.get("pronostico"):
+        # Tomar la probabilidad más alta de las próximas horas
+        prob_ideam = max([p.get("prob_helada", 0) for p in external_data["pronostico"][:2]])
+
+    if temp_ext < 3.0 or prob_ideam > 0.9:
         riesgo_helada = "Crítico (Inminente)"
+    elif temp_ext < 5.0 or prob_ideam > 0.7:
+        riesgo_helada = "Alto (Cielo despejado + baja humedad)"
+    elif prob_ideam > 0.4:
+        riesgo_helada = "Moderado (Atención nocturna)"
         
     climate_info = {
-        "estacion": "Sotaquirá-Centro",
+        "estacion": external_data.get("estacion", "Sotaquirá-Centro"),
         "riesgo_helada": riesgo_helada,
-        "pronostico_6h": "Descenso térmico" if temp_ext < 10 else "Estable",
+        "probabilidad_ideam": f"{prob_ideam:.0%}",
+        "alerta_ideam": external_data.get("alertas_activas", [{}])[0].get("nivel", "NINGUNA"),
         "timestamp_ideam": time.strftime("%Y-%m-%dT%H:%M:%S")
     }
     
     state["climate_info"] = climate_info
-    _log(state, "ClimateAgent", f"Riesgo de helada evaluado: {riesgo_helada}")
+    _log(state, "ClimateAgent", f"Riesgo de helada evaluado: {riesgo_helada} (IDEAM Prob: {prob_ideam:.0%})")
     
     return state
 
@@ -190,35 +211,56 @@ INSTRUCCIONES:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def irrigation_agent(state: dict) -> dict:
-    """Determina si se requieren acciones físicas en el sistema de riego."""
-    _log(state, "IrrigationAgent", "Evaluando requerimientos de riego...")
+    """Determina si se requieren acciones físicas en el sistema de riego y fertirriego."""
+    _log(state, "IrrigationAgent", "Evaluando requerimientos de riego y nutrición...")
     
     sensor_data = state.get("sensor_data", {})
     climate_info = state.get("climate_info", {})
     
+    ph   = sensor_data.get("ph_suelo", 5.0)
+    ce   = sensor_data.get("conductividad", 1.0)
+    h_s  = sensor_data.get("humedad_suelo", 80)
+    
     command = None
     
-    # Lógica de decisión
+    # 1. Prioridad Crítica: Anti-helada
     if climate_info.get("riesgo_helada") == "Crítico (Inminente)":
         command = {
             "accion": "ACTIVAR_RIEGO_ANTIHELADA",
-            "zonas": "A1-A6",
+            "zonas": "A1-A6 (Bloque Total)",
             "prioridad": "CRÍTICA",
-            "mensaje": "Iniciando aspersión para protección térmica."
+            "duracion": "Mientras T < 2°C",
+            "mensaje": "Iniciando aspersión térmica para proteger flores y frutos."
         }
-    elif sensor_data.get("humedad_suelo", 100) < 45:
+    
+    # 2. Fertirriego: Ajuste de pH y Conductividad (Nutrición)
+    elif ph > 5.8 or ce < 0.8:
+        # Arándanos prefieren pH 4.5 - 5.5
+        tipo_mezcla = "Ácida (Ajuste pH)" if ph > 5.8 else "Nutricional (Subir CE)"
+        command = {
+            "accion": "ACTIVAR_FERTIRRIEGO",
+            "zonas": "Lote B (Biloxi)",
+            "prioridad": "MEDIA",
+            "mezcla": tipo_mezcla,
+            "duracion": "15 minutos",
+            "mensaje": f"Ajuste de nutrición detectado: pH={ph}, CE={ce}."
+        }
+    
+    # 3. Riego Hídrico: Por baja humedad
+    elif h_s < 45:
         command = {
             "accion": "ACTIVAR_RIEGO_GOTEO",
-            "zonas": "Lote B",
+            "zonas": "Todo el predio",
             "prioridad": "ALTA",
-            "mensaje": "Recuperación hídrica detectada por sensor."
+            "duracion": "30 minutos",
+            "mensaje": "Déficit hídrico detectado por sensores de suelo."
         }
     
     state["irrigation_command"] = command
     if command:
-        _log(state, "IrrigationAgent", f"Comando emitido: {command['accion']}")
+        _log(state, "IrrigationAgent", f"Comando emitido: {command['accion']} en {command['zonas']}")
     else:
-        _log(state, "IrrigationAgent", "No se requieren acciones de riego en este momento.")
+        _log(state, "IrrigationAgent", "Condiciones óptimas. No se requiere riego.")
         
     return state
 
@@ -228,21 +270,56 @@ def irrigation_agent(state: dict) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def monitor_agent(state: dict) -> dict:
-    """Verifica el flujo, guarda en memoria y finaliza el ciclo."""
-    _log(state, "MonitorAgent", "Verificando integridad del ciclo de agentes...")
+    """Verifica el flujo, guarda en memoria persistente y envía alertas simuladas."""
+    _log(state, "MonitorAgent", "Verificando integridad del ciclo y persistiendo memoria...")
     
+    # 1. Enviar Alerta WhatsApp (Capa 4) si hay eventos importantes
+    from modulo3_cerebro.agents.whatsapp_sim import send_whatsapp_alert, format_whatsapp_message
+    
+    whatsapp_msg = format_whatsapp_message(state)
+    priority = "ALTA" if state.get("irrigation_command") or (state.get("vision_result", {}).get("estado") == "Botrytis") else "NORMAL"
+    
+    send_whatsapp_alert(whatsapp_msg, priority=priority)
+    state["whatsapp_preview"] = whatsapp_msg
+
+    # 2. Preparar entrada de historial
     history_entry = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "status_final": "EXITOSO" if state.get("response") else "INCOMPLETO",
+        "input": state.get("user_input") or "Auto-monitoreo",
         "agentes_activos": [log["agent"] for log in state.get("agent_log", [])],
-        "alerta_emitida": True if state.get("irrigation_command") else False
+        "alerta_emitida": True if state.get("irrigation_command") else False,
+        "vision_detectada": state.get("vision_result", {}).get("estado", "N/A"),
+        "comando_riego": state.get("irrigation_command", {}).get("accion", "NINGUNO")
     }
     
-    # Aquí se podría persistir en una base de datos de historial
+    # Persistencia en archivo JSON (Capa 3 - Memoria)
+    log_dir = ROOT / "logs"
+    log_dir.mkdir(exist_ok=True)
+    history_file = log_dir / "history.json"
+    
+    try:
+        history = []
+        if history_file.exists():
+            with open(history_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        
+        history.append(history_entry)
+        # Mantener solo los últimos 100 registros
+        if len(history) > 100:
+            history = history[-100:]
+            
+        with open(history_file, "w", encoding="utf-8") as f:
+            json.dump(history, f, indent=2, ensure_ascii=False)
+        
+        _log(state, "MonitorAgent", "Historial persistido en logs/history.json")
+    except Exception as e:
+        _log(state, "MonitorAgent", f"Error al guardar memoria: {e}")
+
     state["session_history"] = history_entry
     state["responder"] = "BerryMind (Multi-Agente)"
     
-    _log(state, "MonitorAgent", "Ciclo completado. Memoria actualizada.")
+    _log(state, "MonitorAgent", "Ciclo completado. Sistema en espera.")
     return state
 
 

@@ -9,13 +9,14 @@ Sistema multi-agente de inteligencia artificial para el monitoreo inteligente de
 
 ```
 BerryMind/
-├── módulo1_iot/          # Simulador de sensores IoT (Flask)
+├── módulo1_iot/          # Simulador de sensores IoT y Mock IDEAM
 ├── módulo2_vision/       # Visión artificial (YOLOv8/HSV)
 ├── módulo3_cerebro/      # LangGraph + RAG + Groq
-│   ├── agents/           # Agentes: Supervisor, RAG, Agronómico, Riego
+│   ├── agents/           # Red de 6 Agentes y Simulador WhatsApp
 │   ├── rag/              # ChromaDB: ingestor y retriever
-│   └── knowledge_base/   # Documentos técnicos (base de conocimiento)
-└── módulo4_dashboard/    # Dashboard Streamlit (3 páginas)
+│   └── knowledge_base/   # Manuales técnicos Sotaquirá
+├── módulo4_dashboard/    # Dashboard Streamlit (3 páginas)
+└── logs/                 # Memoria persistente del sistema (JSON)
 ```
 
 ## 🚀 Instalación Rápida
@@ -104,18 +105,27 @@ python módulo3_cerebro/rag/retriever.py
 
 ---
 
-## 🤖 Flujo de Agentes LangGraph
+## 🤖 Red de 6 Agentes Especializados (Capa 3)
 
-```
-[Entrada] → Supervisor → ¿tipo?
-                ├─ texto?  → RAGAgent    → ChromaDB → Groq Llama 3
-                ├─ imagen? → VisionNode  → HSV/YOLO
-                │             ↓
-                │           AgronomicAgent → RAG + Groq
-                └─ alerta? → IrrigationAgent → Comando + Groq
-                              ↓
-                          [OutputNode] → Respuesta en lenguaje natural
-```
+BerryMind utiliza una arquitectura multi-agente orquestada por **LangGraph**:
+
+1.  **SensorAgent:** Ingesta y normaliza datos de 6 sensores IoT.
+2.  **VisionAgent:** Análisis foliar dual (YOLOv8 + HSV).
+3.  **ClimateAgent:** Integra pronósticos del **IDEAM** (Sotaquirá) para alertas tempranas.
+4.  **AgronomicAgent:** Genera recomendaciones técnicas usando RAG y Llama 3.
+5.  **IrrigationAgent:** Calcula pulsos de **fertirriego** (ajuste de pH y CE).
+6.  **MonitorAgent:** Persiste la memoria del sistema en `logs/history.json`.
+
+---
+
+## 📱 Alertas en Tiempo Real (Capa 4)
+
+El sistema simula la comunicación con el productor vía **WhatsApp**:
+- Alertas críticas de helada (predicción IDEAM + Sensores).
+- Notificaciones de inicio de fertirriego nutricional.
+- Diagnósticos fitosanitarios positivos para Botrytis.
+
+*Las alertas pueden previsualizarse en la pestaña **Under the Hood** del Dashboard.*
 
 ---
 

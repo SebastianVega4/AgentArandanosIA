@@ -1,0 +1,46 @@
+{
+    "estacion": "Sotaquirá - Vereda Avendaños",
+    "region": "Boyacá, Colombia",
+    "coordenadas": "5.7600, -73.2500",
+    "pronostico": [
+        {
+            "hora": "00:00",
+            "temp_aire": 4.2,
+            "hr": 45,
+            "viento_kmh": 5,
+            "prob_helada": 0.85,
+            "condicion": "Despejado"
+        },
+        {
+            "hora": "03:00",
+            "temp_aire": 1.8,
+            "hr": 38,
+            "viento_kmh": 3,
+            "prob_helada": 0.95,
+            "condicion": "Helada inminente"
+        },
+        {
+            "hora": "06:00",
+            "temp_aire": 3.5,
+            "hr": 60,
+            "viento_kmh": 8,
+            "prob_helada": 0.40,
+            "condicion": "Nublado"
+        },
+        {
+            "hora": "12:00",
+            "temp_aire": 18.5,
+            "hr": 40,
+            "viento_kmh": 12,
+            "prob_helada": 0.0,
+            "condicion": "Soleado"
+        }
+    ],
+    "alertas_activas": [
+        {
+            "nivel": "NARANJA",
+            "fenomeno": "Descenso de temperaturas mínimas",
+            "validez": "24 horas"
+        }
+    ]
+}

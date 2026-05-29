@@ -135,53 +135,103 @@ with col_graph:
     """, unsafe_allow_html=True)
 
 
-# ── COLUMNA 2: Log en tiempo real ────────────────────────────────────────────
+# ── COLUMNA 2: Log en tiempo real y Alertas ──────────────────────────────────
 with col_logs:
-    st.markdown("### 📋 Traza de Ejecución")
+    tab_logs, tab_whatsapp, tab_history = st.tabs(["📋 Trazas", "📱 WhatsApp", "📜 Historial"])
 
-    agent_log = st.session_state.get("agent_log", [])
+    with tab_logs:
+        agent_log = st.session_state.get("agent_log", [])
 
-    if not agent_log:
-        st.markdown("""
-        <div style="text-align:center; padding:30px; color:#4B5563;">
-            <div style="font-size:2rem; margin-bottom:10px;">💤</div>
-            <p>Sin actividad aún.<br>
-            Usa el chat o el analizador de imágenes para ver el flujo de agentes aquí.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        # Mostrar los últimos 50 eventos
-        log_css_map = {
-            "SensorAgent":     "log-supervisor",
-            "VisionAgent":     "log-visionnode",
-            "ClimateAgent":    "log-ragagent",
-            "AgronomicAgent":  "log-agronomicagent",
-            "IrrigationAgent": "log-irrigationagent",
-            "MonitorAgent":    "log-outputnode",
-        }
-
-        for entry in reversed(agent_log[-50:]):
-            agent   = entry.get("agent", "Sistema")
-            message = entry.get("message", "")
-            ts      = entry.get("timestamp", "")
-            css     = log_css_map.get(agent, "log-outputnode")
-
-            st.markdown(f"""
-            <div class="log-entry {css}">
-                <span style="color:#4B5563; font-size:0.65rem;">[{ts}]</span>
-                <span style="font-weight:600;"> {agent}</span>: {message}
+        if not agent_log:
+            st.markdown("""
+            <div style="text-align:center; padding:30px; color:#4B5563;">
+                <div style="font-size:2rem; margin-bottom:10px;">💤</div>
+                <p>Sin actividad aún.<br>
+                Usa el chat o el analizador de imágenes para ver el flujo de agentes aquí.</p>
             </div>
             """, unsafe_allow_html=True)
+        else:
+            # Mostrar los últimos 50 eventos
+            log_css_map = {
+                "SensorAgent":     "log-supervisor",
+                "VisionAgent":     "log-visionnode",
+                "ClimateAgent":    "log-ragagent",
+                "AgronomicAgent":  "log-agronomicagent",
+                "IrrigationAgent": "log-irrigationagent",
+                "MonitorAgent":    "log-outputnode",
+            }
+
+            for entry in reversed(agent_log[-50:]):
+                agent   = entry.get("agent", "Sistema")
+                message = entry.get("message", "")
+                ts      = entry.get("timestamp", "")
+                css     = log_css_map.get(agent, "log-outputnode")
+
+                st.markdown(f"""
+                <div class="log-entry {css}">
+                    <span style="color:#4B5563; font-size:0.65rem;">[{ts}]</span>
+                    <span style="font-weight:600;"> {agent}</span>: {message}
+                </div>
+                """, unsafe_allow_html=True)
+
+    with tab_whatsapp:
+        st.markdown("### Alertas Enviadas al Productor")
+        whatsapp_file = ROOT / "logs" / "whatsapp_alerts.json"
+        if whatsapp_file.exists():
+            with open(whatsapp_file, "r", encoding="utf-8") as f:
+                alerts = json.load(f)
+            
+            for alert in reversed(alerts):
+                color = "#EF4444" if alert["priority"] == "ALTA" else "#3B82F6"
+                msg_html = alert["message"].replace("\n", "<br>")
+                st.markdown(f"""
+                <div style="background:#111827; border-radius:10px; padding:12px; border-left:4px solid {color}; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:{color}; font-weight:700; font-size:0.75rem;">{alert['priority']}</span>
+                        <span style="color:#4B5563; font-size:0.7rem;">{alert['timestamp']}</span>
+                    </div>
+                    <div style="color:#F1F5F9; font-size:0.85rem; margin-top:5px; font-family:'Inter', sans-serif;">
+                        {msg_html}
+                    </div>
+                    <div style="color:#10B981; font-size:0.65rem; text-align:right; margin-top:4px;">✓ {alert['status']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("No hay alertas de WhatsApp registradas.")
+
+    with tab_history:
+        st.markdown("### Memoria de Ciclos (MonitorAgent)")
+        history_file = ROOT / "logs" / "history.json"
+        if history_file.exists():
+            with open(history_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+            
+            for entry in reversed(history[-20:]):
+                status_color = "#10B981" if entry["status_final"] == "EXITOSO" else "#F59E0B"
+                st.markdown(f"""
+                <div style="background:#1A2235; border-radius:8px; padding:10px; margin-bottom:8px; border:1px solid #1E293B;">
+                    <div style="color:#F1F5F9; font-size:0.8rem; font-weight:600;">{entry['input'][:50]}...</div>
+                    <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                        <span style="color:#94A3B8; font-size:0.7rem;">📅 {entry['timestamp']}</span>
+                        <span style="color:{status_color}; font-size:0.7rem; font-weight:700;">{entry['status_final']}</span>
+                    </div>
+                    <div style="color:#64748B; font-size:0.65rem; margin-top:4px;">
+                        Agentes: {', '.join(entry['agentes_activos'])}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("Historial persistente no encontrado.")
 
     # Botón de limpiar logs
     col_l1, col_l2 = st.columns(2)
     with col_l1:
-        if st.button("🗑️ Limpiar logs", use_container_width=True):
+        if st.button("🗑️ Limpiar sesión", use_container_width=True):
             st.session_state.agent_log = []
             st.rerun()
     with col_l2:
         st.download_button(
-            " Exportar logs",
+            " Exportar sesión",
             data=json.dumps(agent_log, indent=2, ensure_ascii=False),
             file_name=f"berrymind_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
