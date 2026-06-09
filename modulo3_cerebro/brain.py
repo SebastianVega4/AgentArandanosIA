@@ -85,30 +85,35 @@ def node_monitor(state: BerryMindState) -> BerryMindState:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def build_graph():
-    """Construye y compila el grafo LangGraph de BerryMind (6 Agentes)."""
+    """Construye un grafo optimizado y rápido (Flujo simplificado)."""
     from langgraph.graph import StateGraph, END
 
     graph = StateGraph(BerryMindState)
 
-    # Agregar los 6 nodos de la arquitectura
-    graph.add_node("sensor",     node_sensor)
-    graph.add_node("vision",     node_vision)
-    graph.add_node("climate",    node_climate)
-    graph.add_node("agronomy",   node_agronomy)
-    graph.add_node("irrigation", node_irrigation)
-    graph.add_node("monitor",    node_monitor)
+    # Nodos esenciales
+    graph.add_node("perception", perception_node) # Combina Sensor + Visión + Clima
+    graph.add_node("reasoning", reasoning_node)   # Combina Agronomía + Riego
+    graph.add_node("output", node_monitor)       # Monitor y Memoria
 
-    # Definir flujo lineal: cada entrada pasa por todos los filtros de análisis
-    graph.set_entry_point("sensor")
-    
-    graph.add_edge("sensor",     "vision")
-    graph.add_edge("vision",     "climate")
-    graph.add_edge("climate",    "agronomy")
-    graph.add_edge("agronomy",   "irrigation")
-    graph.add_edge("irrigation", "monitor")
-    graph.add_edge("monitor",    END)
+    graph.set_entry_point("perception")
+    graph.add_edge("perception", "reasoning")
+    graph.add_edge("reasoning", "output")
+    graph.add_edge("output", END)
 
     return graph.compile()
+
+def perception_node(state: BerryMindState) -> BerryMindState:
+    from modulo3_cerebro.agents.agents import sensor_agent, vision_agent, climate_agent
+    state = sensor_agent(state)
+    state = vision_agent(state)
+    state = climate_agent(state)
+    return state
+
+def reasoning_node(state: BerryMindState) -> BerryMindState:
+    from modulo3_cerebro.agents.agents import agronomic_agent, irrigation_agent
+    state = agronomic_agent(state)
+    state = irrigation_agent(state)
+    return state
 
 
 # Cache del grafo compilado

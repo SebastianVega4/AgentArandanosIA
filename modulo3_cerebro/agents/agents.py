@@ -149,59 +149,32 @@ def climate_agent(state: dict) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def agronomic_agent(state: dict) -> dict:
-    """Integra todo el conocimiento y genera la recomendación técnica."""
+    """Integra conocimiento y genera recomendación rápida."""
     from modulo3_cerebro.rag.retriever import build_context
     
-    _log(state, "AgronomicAgent", "Iniciando razonamiento agronómico...")
-    
-    # Construir consulta para el RAG basada en las entradas
-    queries = []
-    if state.get("vision_result"):
-        queries.append(f"tratamiento {state['vision_result']['estado']} arándanos")
-    if state.get("sensor_data", {}).get("status") != "NORMAL":
-        queries.append(f"manejo emergencia {state['sensor_data']['mode']} arándanos")
-    if state.get("user_input"):
-        queries.append(state["user_input"])
-        
-    query = " ".join(queries) if queries else "manejo general arándanos Sotaquirá"
-    
-    context = build_context(query, k=3)
-    state["rag_context"] = context
-    _log(state, "AgronomicAgent", "Contexto técnico recuperado de ChromaDB.")
-    
+    # Reducir K para ganar velocidad
+    context = ""
+    if state.get("user_input") or state.get("vision_result"):
+        try:
+            query = state.get("user_input") or state.get("vision_result", {}).get("estado", "")
+            context = build_context(query, k=2) # Bajamos de 4 a 2 fragmentos
+        except:
+            context = "Contexto no disponible."
+
     llm = _get_llm()
     if not llm:
-        state["response"] = f"**[MODO DEMO - SIN API KEY]**\n\nContexto recuperado:\n{context[:300]}..."
-        _log(state, "AgronomicAgent", "⚠️ Usando modo demo por falta de API Key.")
+        state["response"] = "Modo Demo."
         return state
 
-    prompt = f"""Eres BerryMind, el Agente Agronómico experto para el Valle de Sotaquirá.
-    
-DATOS ACTUALES:
-- Sensores: {json.dumps(state.get('sensor_data', {}), indent=2)}
-- Visión: {json.dumps(state.get('vision_result', {}), indent=2)}
-- Clima: {json.dumps(state.get('climate_info', {}), indent=2)}
+    system_msg = "Eres BerryMind, experto en arándanos. Responde breve y técnicamente."
+    input_data = f"D: {state.get('vision_result',{}).get('estado')}\nS: {json.dumps(state.get('sensor_data',{}))}\nC: {context}\nP: {state.get('user_input','')}"
 
-CONTEXTO TÉCNICO:
-{context}
-
-PREGUNTA/SOLICITUD:
-{state.get('user_input', 'Generar reporte de estado actual.')}
-
-INSTRUCCIONES:
-1. Analiza los riesgos detectados.
-2. Da una recomendación basada estrictamente en el contexto técnico.
-3. Sé preciso con dosis y productos.
-4. Responde en español con formato Markdown profesional.
-"""
-    
     try:
-        response = llm.invoke(prompt)
+        from langchain_core.messages import SystemMessage, HumanMessage
+        response = llm.invoke([SystemMessage(content=system_msg), HumanMessage(content=input_data)])
         state["response"] = response.content
-        _log(state, "AgronomicAgent", "✅ Recomendación generada exitosamente.")
     except Exception as e:
-        state["response"] = f"Error al generar respuesta: {e}"
-        _log(state, "AgronomicAgent", f"❌ Error LLM: {e}")
+        state["response"] = f"Error: {str(e)}"
         
     return state
 

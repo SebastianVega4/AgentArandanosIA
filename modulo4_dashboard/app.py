@@ -335,66 +335,85 @@ with st.sidebar:
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.markdown("""
-<div style="text-align:center; padding: 40px 0 20px 0;">
+<div style="text-align:center; padding: 60px 0 30px 0; background: radial-gradient(circle at center, rgba(139, 92, 246, 0.1) 0%, transparent 70%);">
     <h1 style="
-        font-size: 3rem;
-        font-weight: 800;
+        font-size: 4.5rem;
+        font-weight: 900;
         background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 50%, #10B981 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 8px;
-    ">🫐 BerryMind</h1>
-    <p style="font-size:1.1rem; color:#94A3B8; max-width:600px; margin:0 auto;">
-        Sistema de Inteligencia Artificial para Monitoreo Inteligente de Arándanos<br>
-        <span style="color:#64748B; font-size:0.9rem;">Valle de Sotaquirá, Boyacá, Colombia</span>
+        margin-bottom: 0px;
+        letter-spacing: -0.02em;
+    ">BerryMind</h1>
+    <p style="font-size:1.4rem; color:#F1F5F9; font-weight: 500; margin-top: -10px;">
+        Inteligencia Artificial para la Seguridad Fitosanitaria
+    </p>
+    <p style="font-size:1rem; color:#94A3B8; max-width:700px; margin:20px auto; line-height: 1.6;">
+        Potenciando el cultivo de arándanos en el <b>Valle de Sotaquirá</b> mediante la fusión de Visión Artificial, 
+        IoT en tiempo real y Razonamiento Agronómico basado en Agentes IA.
     </p>
 </div>
 """, unsafe_allow_html=True)
 
-# Cards de las 3 vistas principales
+# Cards de las 3 vistas principales con diseño mejorado
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.markdown("""
-    <div class="berrymind-card" style="text-align:center; border-top: 3px solid #3B82F6;">
-        <div style="font-size:2.5rem; margin-bottom:12px;">📡</div>
-        <h3 style="color:#F1F5F9 !important; margin:0 0 8px 0;">Vista UMATA</h3>
-        <p style="color:#94A3B8; font-size:0.85rem; margin:0;">
-            Monitoreo en tiempo real de sensores IoT.<br>
-            Temperatura, humedad, pH del suelo y más.
+    <div class="berrymind-card" style="text-align:center; border-bottom: 4px solid #3B82F6; height: 280px;">
+        <div style="font-size:3.5rem; margin-bottom:15px;">📡</div>
+        <h3 style="color:#F1F5F9 !important; margin:0 0 12px 0;">Control UMATA</h3>
+        <p style="color:#94A3B8; font-size:0.9rem;">
+            Monitoreo satelital e IoT. Análisis de tendencias hídricas y térmicas para prevención de heladas.
         </p>
-        <br>
-        <span style="color:#3B82F6; font-size:0.8rem;">→ Página 1</span>
+        <div style="margin-top: 20px;"><a href="/umata_view" target="_self" style="text-decoration:none; color:#3B82F6; font-weight:700;">ACCEDER PANEL →</a></div>
     </div>
     """, unsafe_allow_html=True)
 
 with col2:
     st.markdown("""
-    <div class="berrymind-card" style="text-align:center; border-top: 3px solid #8B5CF6;">
-        <div style="font-size:2.5rem; margin-bottom:12px;">🤖</div>
-        <h3 style="color:#F1F5F9 !important; margin:0 0 8px 0;">Vista de Campo</h3>
-        <p style="color:#94A3B8; font-size:0.85rem; margin:0;">
-            Chat inteligente con BerryMind.<br>
-            Sube fotos de hojas para diagnóstico IA.
+    <div class="berrymind-card" style="text-align:center; border-bottom: 4px solid #8B5CF6; height: 280px;">
+        <div style="font-size:3.5rem; margin-bottom:15px;">🤖</div>
+        <h3 style="color:#F1F5F9 !important; margin:0 0 12px 0;">Asistente de Campo</h3>
+        <p style="color:#94A3B8; font-size:0.9rem;">
+            Diagnóstico visual de Botrytis mediante IA. Chat interactivo con base de conocimientos agronómica.
         </p>
-        <br>
-        <span style="color:#8B5CF6; font-size:0.8rem;">→ Página 2</span>
+        <div style="margin-top: 20px;"><a href="/campo_view" target="_self" style="text-decoration:none; color:#8B5CF6; font-weight:700;">CHATEAR AHORA →</a></div>
     </div>
     """, unsafe_allow_html=True)
 
 with col3:
     st.markdown("""
-    <div class="berrymind-card" style="text-align:center; border-top: 3px solid #10B981;">
-        <div style="font-size:2.5rem; margin-bottom:12px;">⚙️</div>
-        <h3 style="color:#F1F5F9 !important; margin:0 0 8px 0;">Under the Hood</h3>
-        <p style="color:#94A3B8; font-size:0.85rem; margin:0;">
-            Vista técnica del flujo de agentes IA.<br>
-            Para jurados y evaluadores.
+    <div class="berrymind-card" style="text-align:center; border-bottom: 4px solid #10B981; height: 280px;">
+        <div style="font-size:3.5rem; margin-bottom:15px;">⚙️</div>
+        <h3 style="color:#F1F5F9 !important; margin:0 0 12px 0;">Arquitectura Agente</h3>
+        <p style="color:#94A3B8; font-size:0.9rem;">
+            Explora el razonamiento multi-agente, logs de ejecución y la integración LangGraph de BerryMind.
         </p>
-        <br>
-        <span style="color:#10B981; font-size:0.8rem;">→ Página 3</span>
+        <div style="margin-top: 20px;"><a href="/under_the_hood" target="_self" style="text-decoration:none; color:#10B981; font-weight:700;">VER FLUJO →</a></div>
     </div>
     """, unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+st.divider()
+
+# Sección de capacidades
+c1, c2 = st.columns([1, 1.2])
+with c1:
+    st.markdown("### 🛡️ Escudo Fitosanitario")
+    st.markdown("""
+    BerryMind utiliza una arquitectura de **4 Capas de Inteligencia**:
+    - **Capa 1 (Percepción):** Sensores IoT y Visión Artificial.
+    - **Capa 2 (Conocimiento):** RAG con manuales agronómicos.
+    - **Capa 3 (Razonamiento):** Agentes coordinados con LangGraph.
+    - **Capa 4 (Acción):** Recomendaciones y alertas vía WhatsApp.
+    """)
+with c2:
+    st.info("""
+    **💡 ¿Sabías que?**
+    La detección temprana de *Botrytis cinerea* puede salvar hasta el 80% de la cosecha de flores en Sotaquirá. 
+    BerryMind detecta anomalías cromáticas antes de que el micelio sea visible al ojo humano.
+    """)
 
 st.divider()
 

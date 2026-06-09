@@ -69,7 +69,7 @@ python módulo1_iot/iot_simulator.py --server --mode sequia
 ### Terminal 2: Dashboard Principal
 ```bash
 # Desde el directorio berrymind/
-streamlit run módulo4_dashboard/app.py
+streamlit run modulo4_dashboard/app.py
 ```
 
 Abre tu navegador en: **http://localhost:8501**

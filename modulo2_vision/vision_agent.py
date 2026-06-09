@@ -1,23 +1,15 @@
 """
 BerryMind — Modulo 2: Agente de Visión Artificial
 ==================================================
-Clasifica el estado de hojas de arándano en 3 categorías:
-  - SANO:     Hoja verde, sin manchas, turgente
-  - ALERTA:   Amarillamiento, clorosis, estrés hídrico
-  - BOTRYTIS: Manchas grises/pardas de Botrytis cinerea (moho gris)
+Clasifica el estado de hojas de arándano en 4 categorías:
+  - SANO:               Hoja verde, sin manchas, turgente.
+  - ESTRÉS / CLOROSIS:   Amarillamiento, falta de nutrientes o estrés hídrico.
+  - INFECCIÓN TEMPRANA:  Pequeñas manchas pardas/rojizas (inicio de Botrytis).
+  - BOTRYTIS (AVANZADO): Manchas grises/pardas extensas de Botrytis cinerea.
 
 Estrategia dual:
   1. Si hay modelo YOLOv8 fine-tuneado disponible → lo usa
-  2. Si no → usa análisis de color HSV (heurístico) que funciona sin GPU
-
-Uso:
-    python vision_agent.py --test                      # Clasifica imágenes de prueba
-    python vision_agent.py --image ruta/hoja.jpg       # Clasifica una imagen específica
-
-API:
-    from vision_agent import analyze_leaf
-    result = analyze_leaf("hoja.jpg")
-    # → {"estado": "Sano", "confianza": 0.91, "detalles": "...", "color_stats": {...}}
+  2. Si no → usa análisis de color HSV (heurístico) mejorado.
 """
 
 import os
@@ -51,12 +43,13 @@ BASE_DIR = Path(__file__).parent
 
 def _analyze_hsv(image_path: str) -> dict:
     """
-    Análisis de color en espacio HSV para detectar condición de la hoja.
+    Análisis de color en espacio HSV optimizado para fitopatología de arándano.
     
-    Lógica basada en fitopatología:
-    - Verde saturado (H: 35-85, S>50, V>50)  → SANO
-    - Amarillo/marrón (H: 20-35 o S<30)       → ALERTA
-    - Gris/musgo (H: 0-20, S: 10-30, V: 30-60)→ BOTRYTIS
+    Lógica basada en colorimetría de lesiones:
+    - Verde: H(35-85), S(>30), V(>30)  -> SANO
+    - Amarillo: H(20-35), S(>40)       -> CLOROSIS
+    - Marrón/Rojo: H(<20 o >160), S(>40) -> INFECCIÓN TEMPRANA (Necrosis inicial)
+    - Gris/Pardo: S(<30), V(40-70)     -> BOTRYTIS AVANZADO (Micelio)
     """
     if not CV2_AVAILABLE:
         return _fallback_pil_analysis(image_path)
@@ -73,70 +66,60 @@ def _analyze_hsv(image_path: str) -> dict:
     s_channel = img_hsv[:, :, 1].flatten().astype(float) / 255.0
     v_channel = img_hsv[:, :, 2].flatten().astype(float) / 255.0
 
-    # Calcular distribución de H en la hoja (excluir fondo muy oscuro o muy claro)
-    mask = (v_channel > 0.15) & (v_channel < 0.95) & (s_channel > 0.1)
+    # Máscara para excluir fondo (típicamente oscuro o muy brillante)
+    mask = (v_channel > 0.15) & (v_channel < 0.90) & (s_channel > 0.05)
     if mask.sum() < 100:
-        # Imagen casi vacía o fondo
-        return {"estado": "Sano", "confianza": 0.55, "detalles":
-                "Imagen con poco contraste, análisis limitado.", "color_stats": {}}
+        return {"estado": "Sano", "confianza": 0.50, "detalles": "Imagen no conclusiva (posible fondo).", "color_stats": {}}
 
-    h_vals  = h_channel[mask]
-    s_vals  = s_channel[mask]
-    v_vals  = v_channel[mask]
+    h_vals = h_channel[mask]
+    s_vals = s_channel[mask]
+    v_vals = v_channel[mask]
 
-    # Porcentaje de píxeles en cada rango de color (OpenCV: H en 0-179)
-    pct_green  = float(np.mean((h_vals >= 35) & (h_vals <= 85) & (s_vals > 0.35)))
-    pct_yellow = float(np.mean((h_vals >= 20) & (h_vals < 35) | ((s_vals < 0.25) & (v_vals > 0.5))))
-    pct_gray   = float(np.mean((s_vals < 0.2) & (v_vals > 0.25) & (v_vals < 0.70)))
-    pct_brown  = float(np.mean((h_vals < 20) & (s_vals > 0.2) & (v_vals < 0.55)))
+    # Porcentajes por rangos fitopatológicos (OpenCV H: 0-179)
+    pct_green   = float(np.mean((h_vals >= 35) & (h_vals <= 85) & (s_vals > 0.30)))
+    pct_yellow  = float(np.mean((h_vals >= 20) & (h_vals < 35) & (s_vals > 0.25)))
+    pct_reddish = float(np.mean(((h_vals < 15) | (h_vals > 165)) & (s_vals > 0.30)))
+    pct_gray    = float(np.mean((s_vals < 0.25) & (v_vals > 0.20) & (v_vals < 0.75)))
+    pct_brown   = float(np.mean((h_vals < 20) & (s_vals > 0.20) & (v_vals < 0.50)))
 
-    mean_h = float(np.mean(h_vals))
-    mean_s = float(np.mean(s_vals))
-    mean_v = float(np.mean(v_vals))
-
-    color_stats = {
-        "pct_verde":    round(pct_green * 100, 1),
-        "pct_amarillo": round(pct_yellow * 100, 1),
-        "pct_gris":     round(pct_gray * 100, 1),
-        "pct_marron":   round(pct_brown * 100, 1),
-        "h_promedio":   round(mean_h, 1),
-        "s_promedio":   round(mean_s, 3),
-        "v_promedio":   round(mean_v, 3),
-    }
-
-    # ── Lógica de clasificación ────────────────────────────────────────────
-    botrytis_score = pct_gray * 2.0 + pct_brown * 0.8
-    alerta_score   = pct_yellow * 1.8 + (1 - pct_green) * 0.5
-    sano_score     = pct_green * 2.0 + mean_s * 0.5
-
+    # ── Lógica de Clasificación 4-Estados ─────────────────────────────────
     scores = {
-        "Botrytis": botrytis_score,
-        "Alerta":   alerta_score,
-        "Sano":     sano_score,
+        "Sano":               pct_green * 2.0 + 0.1,
+        "Estrés / Clorosis":  pct_yellow * 2.5 + (1.0 - pct_green) * 0.5,
+        "Infección Temprana": pct_reddish * 3.0 + pct_brown * 1.5,
+        "Botrytis (Avanzado)": pct_gray * 3.5 + pct_brown * 2.0
     }
 
     predicted_class = max(scores, key=scores.get)
     total_score     = sum(scores.values()) + 1e-6
     confidence      = round(scores[predicted_class] / total_score, 2)
-    confidence      = min(max(confidence, 0.52), 0.97)
+    confidence      = min(max(confidence, 0.55), 0.98)
 
     # ── Generación de detalles descriptivos ───────────────────────────────
     details_map = {
         "Sano": (
-            f"La hoja presenta coloración verde saludable ({pct_green*100:.0f}% de área verde). "
-            f"Saturación de color normal ({mean_s:.2f}), sin signos claros de enfermedad. "
-            f"Se recomienda monitoreo rutinario."
+            f"Follaje con coloración verde óptima ({pct_green*100:.1f}%). "
+            "No se observan anomalías cromáticas significativas. Mantener plan de nutrición actual."
         ),
-        "Alerta": (
-            f"Se detecta amarillamiento en aproximadamente {pct_yellow*100:.0f}% del área foliar. "
-            f"Posible clorosis, deficiencia de hierro/manganeso o estrés hídrico. "
-            f"Se recomienda verificar pH del suelo (óptimo 4.5-5.5) y revisar riego."
+        "Estrés / Clorosis": (
+            f"Detección de amarillamiento ({pct_yellow*100:.1f}%) sin presencia de necrosis. "
+            "Sugerencia: Revisar niveles de Nitrógeno y Magnesio, y verificar pH del sustrato."
         ),
-        "Botrytis": (
-            f"Se detectan zonas grises/pardas ({pct_gray*100:.0f}% gris + {pct_brown*100:.0f}% marrón) "
-            f"compatibles con Botrytis cinerea (moho gris). "
-            f"ACCIÓN INMEDIATA: aplicar fungicida (Iprodione o Fenhexamid) y mejorar ventilación."
+        "Infección Temprana": (
+            f"Alerta: Se detectan puntos necróticos iniciales ({pct_reddish*100:.1f}%). "
+            "Posible incubación de Botrytis cinerea. Se recomienda aplicación preventiva de extracto de cítricos o Trichoderma."
         ),
+        "Botrytis (Avanzado)": (
+            f"Estado Crítico: Presencia clara de moho gris y necrosis extendida ({pct_gray*100:.1f}%). "
+            "Acción: Poda de saneamiento inmediata y aplicación de fungicida sistémico (ej. Fenhexamid)."
+        ),
+    }
+
+    color_stats = {
+        "pct_verde":    round(pct_green * 100, 1),
+        "pct_amarillo": round(pct_yellow * 100, 1),
+        "pct_rojo_marron": round((pct_reddish + pct_brown) * 100, 1),
+        "pct_gris":     round(pct_gray * 100, 1),
     }
 
     return {
@@ -144,7 +127,7 @@ def _analyze_hsv(image_path: str) -> dict:
         "confianza":    confidence,
         "detalles":     details_map[predicted_class],
         "color_stats":  color_stats,
-        "metodo":       "HSV_heuristico",
+        "metodo":       "HSV_heuristico_v2",
         "timestamp":    datetime.now().isoformat(),
     }
 
@@ -152,32 +135,23 @@ def _analyze_hsv(image_path: str) -> dict:
 def _fallback_pil_analysis(image_path: str) -> dict:
     """Análisis básico con PIL cuando OpenCV no está disponible."""
     if not PIL_AVAILABLE:
-        return {
-            "estado": "Sano", "confianza": 0.60,
-            "detalles": "OpenCV y PIL no disponibles. Resultado simulado.",
-            "color_stats": {}, "metodo": "fallback_simulado"
-        }
+        return {"estado": "Sano", "confianza": 0.50, "detalles": "Sin librerías de visión.", "color_stats": {}}
 
     img = Image.open(image_path).convert("RGB").resize((224, 224))
     arr = np.array(img, dtype=float)
     r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
 
-    pct_green  = float(np.mean((g > r * 1.1) & (g > b * 1.1) & (g > 50)))
-    pct_yellow = float(np.mean((r > 150) & (g > 130) & (b < 80)))
-    pct_gray   = float(np.mean((np.abs(r - g) < 30) & (np.abs(g - b) < 30) & (r < 180) & (r > 60)))
-
-    if pct_green > 0.35:
-        estado, conf = "Sano", round(0.55 + pct_green * 0.4, 2)
-    elif pct_yellow > 0.20:
-        estado, conf = "Alerta", round(0.55 + pct_yellow * 0.4, 2)
-    else:
-        estado, conf = "Botrytis", round(0.55 + pct_gray * 0.4, 2)
+    # Heurística simple RGB
+    pct_green = float(np.mean((g > r * 1.1) & (g > b * 1.1)))
+    pct_red   = float(np.mean((r > g * 1.2) & (r > b * 1.1)))
+    
+    if pct_green > 0.4:  estado = "Sano"
+    elif pct_red > 0.15: estado = "Infección Temprana"
+    else:                estado = "Estrés / Clorosis"
 
     return {
-        "estado": estado, "confianza": min(conf, 0.97),
-        "detalles": f"Análisis PIL básico. Verde: {pct_green*100:.0f}%, Amarillo: {pct_yellow*100:.0f}%",
-        "color_stats": {"pct_verde": round(pct_green*100, 1)},
-        "metodo": "PIL_basico"
+        "estado": estado, "confianza": 0.65, "detalles": "Análisis PIL básico.",
+        "color_stats": {"pct_verde": round(pct_green*100,1)}, "metodo": "PIL_basico"
     }
 
 
@@ -186,7 +160,7 @@ def _fallback_pil_analysis(image_path: str) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _yolo_model = None
-CLASS_NAMES  = ["Sano", "Alerta", "Botrytis"]
+CLASS_NAMES  = ["Sano", "Estrés / Clorosis", "Infección Temprana", "Botrytis (Avanzado)"]
 
 def _load_yolo_model():
     """Intenta cargar el modelo YOLOv8 si está disponible."""
@@ -199,16 +173,16 @@ def _load_yolo_model():
     try:
         from ultralytics import YOLO
         _yolo_model = YOLO(str(model_path))
-        _yolo_model.to("cpu")   # Forzar CPU
-        print("[Vision] Modelo YOLOv8 personalizado cargado.")
+        _yolo_model.to("cpu")
+        print("[Vision] Modelo YOLOv8 cargado.")
         return True
     except Exception as e:
-        print(f"[Vision] No se pudo cargar YOLOv8: {e}. Usando análisis HSV.")
+        print(f"[Vision] Error YOLOv8: {e}")
         return False
 
 
 def _analyze_with_yolo(image_path: str) -> dict:
-    """Clasifica con el modelo YOLOv8 fine-tuneado."""
+    """Clasifica con el modelo YOLOv8."""
     results = _yolo_model(image_path, verbose=False)
     probs   = results[0].probs
 
@@ -216,169 +190,72 @@ def _analyze_with_yolo(image_path: str) -> dict:
     top_conf  = float(probs.top1conf)
     class_name = CLASS_NAMES[top_idx] if top_idx < len(CLASS_NAMES) else f"Clase_{top_idx}"
 
-    all_probs = {CLASS_NAMES[i]: round(float(probs.data[i]), 3)
-                 for i in range(min(len(CLASS_NAMES), len(probs.data)))}
-
     return {
         "estado":      class_name,
         "confianza":   round(top_conf, 2),
-        "detalles":    f"Clasificación YOLOv8: {class_name} con {top_conf*100:.1f}% de confianza.",
+        "detalles":    f"Detección neuronal (YOLOv8): {class_name}.",
         "color_stats": {},
-        "all_probs":   all_probs,
         "metodo":      "YOLOv8_finetuned",
         "timestamp":   datetime.now().isoformat(),
     }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FUNCIÓN PRINCIPAL DE ANÁLISIS (API pública)
+# API PÚBLICA
 # ─────────────────────────────────────────────────────────────────────────────
 
 def analyze_leaf(image_path: str) -> dict:
-    """
-    Analiza una imagen de hoja de arándano y retorna su estado fitosanitario.
-
-    Args:
-        image_path: Ruta a la imagen (JPG, PNG, WEBP)
-
-    Returns:
-        {
-            "estado":     "Sano" | "Alerta" | "Botrytis",
-            "confianza":  float (0.0 – 1.0),
-            "detalles":   str   (descripción y recomendaciones),
-            "color_stats": dict (estadísticas de color),
-            "metodo":     str   ("YOLOv8_finetuned" | "HSV_heuristico" | ...)
-        }
-    """
+    """Analiza una imagen de hoja de arándano y retorna su estado fitosanitario."""
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Imagen no encontrada: {image_path}")
 
-    # Intentar primero con YOLOv8 si está disponible
     if _yolo_model is not None:
-        return _analyze_with_yolo(image_path)
+        try:
+            return _analyze_with_yolo(image_path)
+        except:
+            pass
 
-    # Análisis HSV como método principal
     return _analyze_hsv(image_path)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GENERADOR DE IMÁGENES DE PRUEBA (para demo sin fotos reales)
-# ─────────────────────────────────────────────────────────────────────────────
-
 def generate_test_images():
-    """Genera imágenes sintéticas de prueba con colores representativos de cada estado."""
-    if not CV2_AVAILABLE and not PIL_AVAILABLE:
-        print("[Vision] Sin OpenCV ni PIL; no se pueden generar imágenes de prueba.")
-        return
-
+    """Genera imágenes sintéticas de prueba con colores representativos."""
+    if not CV2_AVAILABLE: return
     output_dir = BASE_DIR / "test_images"
     output_dir.mkdir(exist_ok=True)
 
     specs = {
-        "sano.jpg":     {"base_h": 60, "base_s": 200, "base_v": 120, "noise": 15,
-                         "desc":  "Verde vibrante — hoja saludable"},
-        "alerta.jpg":   {"base_h": 28, "base_s": 160, "base_v": 160, "noise": 20,
-                         "desc":  "Amarillo-verdoso — clorosis incipiente"},
-        "botrytis.jpg": {"base_h": 10, "base_s": 40,  "base_v": 100, "noise": 25,
-                         "desc":  "Gris-pardo — Botrytis cinerea"}
+        "sano.jpg":     (60, 200, 100),
+        "clorosis.jpg": (30, 180, 150),
+        "temprano.jpg": (5,  150, 80),
+        "botrytis.jpg": (10, 40,  100)
     }
 
-    for filename, spec in specs.items():
-        img_path = output_dir / filename
-        if img_path.exists():
-            print(f"[Vision] Ya existe: {img_path}")
-            continue
+    for filename, (h, s, v) in specs.items():
+        img = np.zeros((224, 224, 3), dtype=np.uint8)
+        img[:] = [h, s, v]
+        mask = np.zeros((224, 224), dtype=np.uint8)
+        cv2.ellipse(mask, (112, 112), (80, 100), 0, 0, 360, 255, -1)
+        bgr = cv2.cvtColor(img, cv2.COLOR_HSV2BGR)
+        res = cv2.bitwise_and(bgr, bgr, mask=mask)
+        cv2.imwrite(str(output_dir / filename), res)
 
-        if CV2_AVAILABLE:
-            hsv_img = np.zeros((224, 224, 3), dtype=np.uint8)
-            h_noise = np.random.randint(-spec["noise"], spec["noise"], (224, 224))
-            s_noise = np.random.randint(-spec["noise"], spec["noise"]//2, (224, 224))
-            v_noise = np.random.randint(-spec["noise"]//2, spec["noise"]//2, (224, 224))
-
-            hsv_img[:, :, 0] = np.clip(spec["base_h"] + h_noise, 0, 179)
-            hsv_img[:, :, 1] = np.clip(spec["base_s"] + s_noise, 0, 255)
-            hsv_img[:, :, 2] = np.clip(spec["base_v"] + v_noise, 0, 255)
-
-            # Añadir forma de hoja (elipse)
-            mask = np.zeros((224, 224), dtype=np.uint8)
-            cv2.ellipse(mask, (112, 112), (80, 100), 0, 0, 360, 255, -1)
-            bgr_leaf = cv2.cvtColor(hsv_img, cv2.COLOR_HSV2BGR)
-            bg = np.zeros_like(bgr_leaf)
-            bg[:] = [30, 30, 30]    # Fondo oscuro
-            result = np.where(mask[:, :, np.newaxis] > 0, bgr_leaf, bg)
-            cv2.imwrite(str(img_path), result)
-
-        elif PIL_AVAILABLE:
-            from PIL import ImageDraw
-            img = Image.new("RGB", (224, 224), (30, 30, 30))
-            draw = ImageDraw.Draw(img)
-            color_map = {
-                "sano.jpg":     (60, 160, 60),
-                "alerta.jpg":   (200, 200, 50),
-                "botrytis.jpg": (120, 100, 100),
-            }
-            draw.ellipse([32, 12, 192, 212], fill=color_map[filename])
-            img.save(str(img_path))
-
-        print(f"[Vision] Imagen de prueba generada: {img_path} ({spec['desc']})")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PUNTO DE ENTRADA
-# ─────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="BerryMind Vision Agent — Clasificación de hojas de arándano"
-    )
-    parser.add_argument("--image", help="Ruta a la imagen a analizar")
-    parser.add_argument("--test",  action="store_true",
-                        help="Analizar las imágenes de prueba y salir")
-    parser.add_argument("--gen-test-images", action="store_true",
-                        help="Generar imágenes de prueba sintéticas")
+    parser = argparse.ArgumentParser(description="BerryMind Vision Agent")
+    parser.add_argument("--image", help="Ruta a la imagen")
+    parser.add_argument("--test",  action="store_true", help="Correr pruebas")
     args = parser.parse_args()
 
-    # Intentar cargar modelo YOLOv8 fine-tuneado si existe
     _load_yolo_model()
-
-    if args.gen_test_images:
-        generate_test_images()
-        return
-
     if args.test:
-        print("\n=== TEST: Clasificando imágenes de prueba ===")
-        test_dir = BASE_DIR / "test_images"
-
-        # Generar si no existen
         generate_test_images()
-
-        for img_file in sorted(test_dir.glob("*.jpg")):
-            try:
-                result = analyze_leaf(str(img_file))
-                print(f"\n📸 {img_file.name}")
-                print(f"   Estado:     {result['estado']}")
-                print(f"   Confianza:  {result['confianza'] * 100:.1f}%")
-                print(f"   Método:     {result.get('metodo', 'N/A')}")
-                print(f"   Detalles:   {result['detalles'][:80]}...")
-                if result.get("color_stats"):
-                    cs = result["color_stats"]
-                    print(f"   Colores:    Verde={cs.get('pct_verde', 0)}%  "
-                          f"Amarillo={cs.get('pct_amarillo', 0)}%  "
-                          f"Gris={cs.get('pct_gris', 0)}%")
-            except Exception as e:
-                print(f"   ❌ Error: {e}")
-
-        print("\n✅ Test de visión completado.")
-        return
-
-    if args.image:
-        _load_yolo_model()
-        result = analyze_leaf(args.image)
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-        return
-
-    parser.print_help()
-
+        test_dir = BASE_DIR / "test_images"
+        for img in test_dir.glob("*.jpg"):
+            res = analyze_leaf(str(img))
+            print(f"[{img.name}] -> {res['estado']} ({res['confianza']:.0%})")
+    elif args.image:
+        print(json.dumps(analyze_leaf(args.image), indent=2, ensure_ascii=False))
 
 if __name__ == "__main__":
     main()

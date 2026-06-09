@@ -30,15 +30,25 @@ def _init():
         return True
 
     if not CHROMA_DIR.exists():
-        print("[RAG Retriever] ⚠️  ChromaDB no encontrado. Ejecuta primero: python ingestor.py")
         return False
 
     try:
         import chromadb
         from sentence_transformers import SentenceTransformer
 
-        _client     = chromadb.PersistentClient(path=str(CHROMA_DIR))
-        _collection = _client.get_or_create_collection("berrymind_kb")
+        # Usar cliente persistente con configuración robusta
+        _client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+        
+        # Intentar obtener la colección. Si falla por metadatos corruptos (_type), 
+        # devolvemos False para que el sistema sepa que no hay RAG disponible.
+        try:
+            _collection = _client.get_collection("berrymind_kb")
+        except Exception as e:
+            if "'_type'" in str(e):
+                print("[RAG Retriever] ❌ Error de metadatos en ChromaDB. Se recomienda: python modulo3_cerebro/rag/ingestor.py --rebuild")
+            else:
+                print(f"[RAG Retriever] Error al obtener colección: {e}")
+            return False
 
         if _embed_model is None:
             _embed_model = SentenceTransformer(
@@ -48,27 +58,19 @@ def _init():
         return True
 
     except Exception as e:
-        print(f"[RAG Retriever] Error al inicializar: {e}")
+        print(f"[RAG Retriever] Error crítico en inicialización: {e}")
         return False
 
-
 def search(query: str, k: int = 3, min_score: float = 0.3) -> list[dict]:
-    """
-    Busca los k fragmentos más relevantes para la consulta dada.
+    """Busca fragmentos relevantes con optimización de velocidad."""
+    if len(query) < 5: return [] # Ignorar consultas demasiado cortas
 
-    Args:
-        query:     Pregunta o consulta del usuario
-        k:         Número máximo de resultados a retornar
-        min_score: Score mínimo de similitud (0.0 – 1.0)
-
-    Returns:
-        Lista de dicts con "text", "source", "score" y metadatos
-    """
     if not _init():
         return []
 
     try:
-        query_embedding = _embed_model.encode([query], convert_to_list=True)[0]
+        # Búsqueda optimizada
+        query_embedding = _embed_model.encode([query], convert_to_list=True, show_progress_bar=False)[0]
         results = _collection.query(
             query_embeddings=[query_embedding],
             n_results=min(k, _collection.count()),
